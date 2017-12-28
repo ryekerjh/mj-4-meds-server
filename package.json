@@ -1,20 +1,44 @@
 {
-  "name": "modular-backend",
+  "name": "mj-for-meds-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Back end for online shop.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec babel-node index.js",
-    "prestart": "babel src --out-dir dist",
-    "start": "node dist/index.js" 
+    "prestart": "babel index.js --out-dir dist",
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "async": "2.1.5",
+    "babel-polyfill": "^6.23.0",
+    "babel-register": "^6.24.1",
+    "bcrypt-nodejs": "0.0.3",
+    "body-parser": "~1.13.2",
+    "cors": "^2.8.3",
+    "dotenv": "^4.0.0",
+    "ejs": "^2.5.7",
+    "es6-promise": "^4.1.1",
+    "es6-promisify": "^5.0.0",
+    "express": "^4.14.0",
+    "express-jwt": "^5.3.0",
+    "fs": "0.0.1-security",
+    "jsonwebtoken": "7.1.9",
+    "jwks-rsa": "^1.2.1",
+    "lodash": "4.17.4",
+    "method-override": "^2.3.6",
+    "mongoose": "^4.10.8",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.4"
+  },
   "devDependencies": {
     "babel-cli": "^6.24.1",
     "babel-preset-es2015": "^6.24.1",
+    "babel-register": "^6.18.0",
+    "morgan": "^1.8.2",
     "nodemon": "^1.11.0"
   }
 }

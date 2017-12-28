@@ -1,9 +1,35 @@
-import { createServer } from 'http';
+import express from 'express';
+import bodyParser from 'body-parser';
+import babelRegister from 'babel-register';
+import { Modules } from './modules';
+import { BootstrapRouter } from './helpers/bootstrap-router';
+import { dbConnect } from './helpers/db-connect';
+import { normalizePort } from './helpers/normalize-port';
+import { configCors } from './helpers/cors';
+let morgan = require('morgan');
+let methodOverride = require('method-override');
+require('dotenv').config();
 
-const port = '127.0.0.1'
-createServer((req, res) => {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('Hello People\n');
-}).listen(3003, port)
 
+//Set up express as the router, grab port from .env file
+let app = express();
+const port = normalizePort(process.env.PORT || '3003');
+
+//Use Morgan for dev environment, Use bodyParser for reqs
+app.use(morgan('dev'));
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({limit:'50mb'}))
+
+//Use helper fns to bootstrap the modules, connect to db, and config CORS
+app = dbConnect(app);
+app = configCors(app);
+app = BootstrapRouter(app, new Modules);
+
+//set server to listen on port
+const server = require('http').Server(app);
+server.listen(port, function() {
 console.log('The Server is running at', port);
+});
+
+module.exports = app;
