@@ -2,6 +2,7 @@ import express from 'express';
 // import jwt from '../../helpers/jwt';
 import bcrypt from 'bcrypt-nodejs';
 import * as helpers from '../../helpers/helper.functions';
+import jwt from '../../helpers/jwt';
 const mongoose = require('mongoose');
 mongoose.Promise = Promise;
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -17,11 +18,11 @@ export class UserModule {
         this.router = express.Router();
         //User routes 
         this.router.route('/')
-            .get(this.getAll)
+            .get(jwt.protect, this.getAll)
             .post(this.createUser)  
-        this.router.route(':id')
-            .get(this.getUser)
-            .put(this.updateUser)       
+        this.router.route('/:id')
+            .get(jwt.protect, this.getUser)
+            .put(jwt.protect, this.updateUser)       
   }
 
     getAll(req, res) {
@@ -155,13 +156,18 @@ export class UserModule {
 
     updateUser(req, res) {
         let thisUser = req.body;
-        return User.findOneAndUpdate({ _id: thisUser._id}, thisUser)
-        .then(updatedUser => {
-            res.send(updatedUser);
-        })
-        .catch(err => {
-           res.send({message: `The server responded with error: ${err}`})                
-        });
+        if(req.currentUser._id == thisUser._id) {
+            return User.findOneAndUpdate({ _id: thisUser._id}, thisUser)
+            .then(updatedUser => {
+                res.send(updatedUser);
+            })
+            .catch(err => {
+               res.send({message: `The server responded with error: ${err}`})                
+            });
+        } else {
+            res.status(401);
+            res.send('You are not authorized to perform this action.');
+        }
     };
 
     // searchUsers(req, res){
