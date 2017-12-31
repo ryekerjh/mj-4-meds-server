@@ -1,5 +1,4 @@
 import express from 'express';
-// import jwt from '../../helpers/jwt';
 import bcrypt from 'bcrypt-nodejs';
 import * as helpers from '../../helpers/helper.functions';
 import jwt from '../../helpers/jwt';
@@ -20,9 +19,15 @@ export class UserModule {
         this.router.route('/')
             .get(jwt.protect, this.getAll)
             .post(this.createUser)  
+        this.router.route('/login')
+            .post(this.authenticate) 
+        this.router.route('/complete-registration')
+            .post(jwt.protect, this.completeUser)
+        this.router.route('/get-user-details/:id')
+            .get(this.exchangeTokens)
         this.router.route('/:id')
             .get(jwt.protect, this.getUser)
-            .put(jwt.protect, this.updateUser)       
+            .put(jwt.protect, this.updateUser)      
   }
 
     getAll(req, res) {
@@ -38,8 +43,6 @@ export class UserModule {
     }
 
     createUser(req, res) {
-        // TODO: add check for if its a guest being created. If so, 
-        // just make a very summary user.
         let newUser = req.body.user;
         return User.findOne({email: newUser.email})
         .then(user => {
@@ -52,8 +55,9 @@ export class UserModule {
                 return userToSave.save()
                 .then((savedUser) => {
                     helpers.setPassword(savedUser.email);
+                    return savedUser
                 })
-                .then(() => {
+                .then((user) => {
                     res.send({
                         message: `Please check your email at ${user.email} to verify your account.`
                     });
@@ -68,91 +72,108 @@ export class UserModule {
         });
     };
 
-    // verifyUser(req, res) {
-    //     let newUser = req.body.user;
-    //     Password.findOne({_id: newUser.token}, (err, token) => {
-    //         let userId = token.user;
-    //         bcrypt.hash(newUser.password, null, null, function(err, hash) {
-    //         if (err) {
-    //             res.json({error: err})
-    //         } else {
-    //             newUser.password = hash;
-    //             User.findOne({_id: userId})
-    //             .select('+password')
-    //             .exec((err, userToUpdate) => {
-    //                 if(err) {
-    //                     res.send({
-    //                         error: err,
-    //                         message: `Server responded with ${err}.`
-    //                     })
-    //                 } else if(userToUpdate) {
-    //                     User.update({_id: userToUpdate._id}, newUser, {new:true}, (err, result) => {
-    //                         if(err) {
-    //                             res.send({
-    //                                 error: err,
-    //                                 message: `Server responded with ${err}.`
-    //                             })
-    //                         } else {
-    //                             var token = jwt.sign({
-    //                                 email: userToUpdate.email, 
-    //                                 _id: userToUpdate._id, 
-    //                                 role: userToUpdate.role},
-    //                                 process.env.JWT_SECRET);
+    completeUser(req, res) {
+        // TODO: add check for if its a guest being created. If so, 
+        // just make a very summary user.
+        let newUser = req.body.user;
+        return Password.findOne({_id: newUser.token})
+        .then(token => {
+            let userId = token.user;
+            bcrypt.hash(newUser.password, null, null, function(err, hash) {
+                newUser.password = hash;
+                return User.findOne({_id: userId})
+                .select('+password')
+                .then((err, userToUpdate) => {
+                    if(err) {
+                        res.send({
+                            error: err,
+                            message: `Server responded with ${err}.`
+                        })
+                    } else if(userToUpdate) {
+                        User.update({_id: userToUpdate._id}, newUser, {new:true}, (err, result) => {
+                            if(err) {
+                                res.send({
+                                    error: err,
+                                    message: `Server responded with ${err}.`
+                                })
+                            } else {
+                                var token = jwt.sign({
+                                    email: userToUpdate.email, 
+                                    _id: userToUpdate._id, 
+                                    role: userToUpdate.role},
+                                    process.env.JWT_SECRET);
                 
-    //                             res.send({
-    //                                 user: userToUpdate,
-    //                                 code: 200,
-    //                                 token: token,
-    //                                 message: `Your user was created successfully. You will be redirected to the property management portal shortly.`
-    //                             })
-    //                         }
-    //                     })
-    //                 } else {
-    //                     //TODO: This happens when the user no longer exists in DB
-                        
-    //                     console.log('something went wrong');
-    //                 }
-    //             })
-    //         }
-    //         })
-    //     })
-    // };
+                                res.send({
+                                    user: userToUpdate,
+                                    code: 200,
+                                    token: token,
+                                    message: `Your user was created successfully. You will be redirected to the property management portal shortly.`
+                                })
+                            }
+                        })
+                    } else {
+                        console.log('No user was found in db.');
+                    }
+                })
+                .catch(e => {
+                    helpers.handleErr(e);
+                })
+            })
+        })
+        .catch(err => {
+            res.json({error: err})
+        })
+    };
 
-    // authenticate(req, res) {
-    //     console.log('should not be attached to no auth');        
-    //     User.findOne({email: req.body.email})
-    //         .select('+password')
-    //         .exec((err, user) => {
-    //         if (user) {
-    //         bcrypt.compare(req.body.password, user.password, (err, response) => {
-    //             if (response) {
-    //             var token = jwt.sign({
-    //                 email: user.email, 
-    //                 _id: user._id, 
-    //                 firstName: user.firstName,
-    //                 person:user.people[0],
-    //                 lastName: user.lastName,
-    //                 role: user.role},
-    //                 process.env.JWT_SECRET);
+    authenticate(req, res) {
+        return User.findOne({email: req.body.email})
+            .select('+password')
+            .then(user => {
+            if (user) {
+            bcrypt.compare(req.body.password, user.password, (err, response) => {
+                if (response) {
+                var token = jwt.sign({
+                    email: user.email, 
+                    _id: user._id, 
+                    firstName: user.firstName,
+                    person:user.people[0],
+                    lastName: user.lastName,
+                    role: user.role},
+                    process.env.JWT_SECRET);
 
-    //                 res.json({
-    //                     token: token,
-    //                 });
+                    res.json({
+                        token: token,
+                    });
 
-    //             } else {
-    //                 res.json({
-    //                     message: 'Incorrect password. Please try again.',
-    //                     errors: err
-    //                 })
-    //             }
-    //         })
-    //         } else {
-    //             res.json({
-    //                 message: 'This email is not registered in our system.'
-    //             })
-    //         }
-    //     })
-    // }
+                } else {
+                    res.json({
+                        message: 'Incorrect password. Please try again.',
+                        errors: err
+                    })
+                }
+            })
+            } else {
+                res.json({
+                    message: 'This email is not registered in our system.'
+                })
+            }
+        })
+        .catch(e => {
+            helpers.handleErr(e);
+        });
+    }
+
+    exchangeTokens(req, res) {
+        const tempToken = req.params.id;
+        return User.findOneAndUpdate({tempToken: tempToken}, {tempToken: null}, {new: true})
+        .then(returnedUser => {
+            console.log(returnedUser);
+            res.send(returnedUser);
+        })
+        .catch(e => {
+            helpers.handleErr(e);
+        });
+    }
 
     updateUser(req, res) {
         let thisUser = req.body;

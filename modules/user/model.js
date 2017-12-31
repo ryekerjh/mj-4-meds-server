@@ -7,7 +7,12 @@ const options = {
 const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['superadmin','employee', 'guest', 'member'], default: 'guest'},
   email: {type: String, default: ''},
-  address: {type: String, default: ''}
+  street: {type: String, default: ''},
+  apt: {type: String, default: ''},
+  city: {type: String, default: ''},
+  state: {type: String, default: ''},
+  zip: {type: String, default: ''},
+  tempToken: {type: String, default: null}
 }, {
     timestamps: true
 });

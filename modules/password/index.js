@@ -1,10 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcrypt-nodejs';
 import Password from './model';
-import UserTypes from '../users/model';
+import UserTypes from '../user/model';
 const User = UserTypes.User;
 import * as helpers from '../../helpers/helper.functions';
-// import jwt from '../../helpers/jwt';
+import jwt from '../../helpers/jwt';
 require('dotenv').config();
 
 export class PasswordModule {

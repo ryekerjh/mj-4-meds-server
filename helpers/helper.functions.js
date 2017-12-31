@@ -33,13 +33,22 @@ function getNewUserByEmail(email) {
      * new user. Once the token is clicked, it will help validate the user.
      */
     function createNewPasswordToken(user) {
-        let Password = require('../modules/password/model');
+        const UserTypes = require('../modules/user/model');
+        const User = UserTypes.Guest;
         const mongoose = require('mongoose');
         mongoose.Promise = Promise;
-        return Password
-        .create({user: user._id})
+        return generateRandomToken()
         .then(result => {
-        return {email: user.email, token: result};
+            return User.findByIdAndUpdate(user._id, {tempToken: result}, {new:true})
+            .then(returnedUser => {
+                return {email: user.email, token: result};
+            })
+            .catch(e => {
+                helpers.handleErr(e);
+            })
+        }) 
+        .catch(e => {
+            helpers.handleErr(e);
         });
     };
 
@@ -61,7 +70,7 @@ function getNewUserByEmail(email) {
         .then((result) => {
             if(result){
                 //create the token and return the email, token, and the template.
-                var token_url = process.env.APP_BASE_URL + '/#/set?token=' + token.token._id;
+                var token_url = `${process.env.APP_BASE_URL}/#/token-login/${token.token}`;
                 return {
                     email: token.email,
                     token: token.token,
@@ -103,6 +112,23 @@ function sendNewPasswordEmail(email) {
             console.log(err);
         });
 };
+
+function generateRandomToken() {
+    return new Promise((resolve, reject) => {
+    // set the length of the string
+    var stringLength = 30;
+
+    // list containing characters for the random string
+    var stringArray = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','!','?'];
+        var rndString = "";
+        // build a string with random characters
+        for (var i = 1; i < stringLength; i++) { 
+            var rndNum = Math.ceil(Math.random() * stringArray.length) - 1;
+            rndString = rndString + stringArray[rndNum];
+        };
+        resolve(rndString);
+        });
+	};
 
 /**
  * 
